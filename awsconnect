@@ -73,7 +73,7 @@ class SshConnect():
           exit(1)
 
         if args.pattern:
-          self.__cluster_connect(sorted_instances, args.pattern, private_key, user)
+          self.__cluster_connect_tmux_cssh(sorted_instances, args.pattern, private_key, user)
           exit(0)
 
         print "Instances running:\n"
@@ -85,7 +85,7 @@ class SshConnect():
           instance_to_connect = raw_input("\nPlease, insert the instance id or a pattern to connect: ")
 
           if not str(instance_to_connect).isdigit():
-            self.__cluster_connect(sorted_instances, instance_to_connect, private_key, user)
+            self.__cluster_connect_tmux_cssh(sorted_instances, instance_to_connect, private_key, user)
             exit(0)
           if int(instance_to_connect) not in range(len(sorted_instances)):
             print "Instance id not valid"
@@ -100,12 +100,19 @@ class SshConnect():
           subprocess.call('ssh-add %s' % private_key, shell=True)
         subprocess.call('/usr/bin/ssh -l %s %s' % (user, sorted_instances[int(instance_to_connect)]['dns']), shell=True)
 
-    def __cluster_connect(self, sorted_instances, pattern, private_key, user):
+    def __cluster_connect_cssh(self, sorted_instances, pattern, private_key, user):
       hosts_to_connect = ""
       for instance in sorted_instances:
           if re.search(pattern, instance['name']):
               hosts_to_connect = hosts_to_connect + " " + user + "@%s" % instance['dns']
       subprocess.call('/usr/bin/cssh -l ec2-user %s' % hosts_to_connect, shell=True)
+
+    def __cluster_connect_tmux_cssh(self, sorted_instances, pattern, private_key, user):
+      hosts_to_connect = ""
+      for instance in sorted_instances:
+          if re.search(pattern, instance['name']):
+              hosts_to_connect = hosts_to_connect + " --sc " + instance['dns']
+      subprocess.call('/usr/local/bin/tmux-cssh -u ec2-user %s' % hosts_to_connect, shell=True)
 
     def __get_sorted_instances(self, ec2Connection):
 
